@@ -4,6 +4,9 @@
 #include <EEPROM.h>
 #include <Ticker.h>
 
+//IMPORTANT: Code was originally compiled with FastLED Version 3.10.0 and ESP8266 core 3.1.2
+//So use those versions if you run into any bugs
+
 #define FASTLED_INTERNAL 1  //turns off the pragma messages from FastLED
 #include <Pixel_Spork.h>
 
@@ -27,12 +30,12 @@
 //run "IRrecvDemo" example from IRremoteESP8266 library to get hex values for your remote's buttons.
 //You can map the functions to whatever buttons you wish.
 //Also note that some settings are saved after shutdown using EEPROM.
-#define BRI_INC_BUT      0xFF18E7  //up arrow, brightness increase, saves.
-#define BRI_DEC_BUT      0xFF4AB5  //down arrow, brightness decrease, saves.
-#define NEXT_EFFECT_BUT  0xFF5AA5  //right arrow, next effect, wraps back to start.
-#define PREV_EFFECT_BUT  0xFF10EF  //left arrow, previous effect, wraps back to end.
-#define EFFECT_LOCK_BUT  0xFF38C7  //"OK", toggles effect cycling, so the current effect is run forever, saves.
-#define EFFECTS_OFF_BUT  0xFF6897  //"*", turns all effects on/off, also blocks all other button inputs while off.
+#define BRI_INC_BUT 0xFF18E7       //up arrow, brightness increase, saves.
+#define BRI_DEC_BUT 0xFF4AB5       //down arrow, brightness decrease, saves.
+#define NEXT_EFFECT_BUT 0xFF5AA5   //right arrow, next effect, wraps back to start.
+#define PREV_EFFECT_BUT 0xFF10EF   //left arrow, previous effect, wraps back to end.
+#define EFFECT_LOCK_BUT 0xFF38C7   //"OK", toggles effect cycling, so the current effect is run forever, saves.
+#define EFFECTS_OFF_BUT 0xFF6897   //"*", turns all effects on/off, also blocks all other button inputs while off.
 #define EFFECT_RESET_BUT 0xFFB04F  //"#", restarts the current effect (with new inputs if random).
 
 //EEPROM Addresses for settings
@@ -41,21 +44,21 @@
 //Note that EEPROM has limited lifetime writes ~10K, so we want to commit all the writes after a delay.
 //This allows the data to change while the user is pressing buttons, and we'll only commit
 //the final values once they are done, minimizing total writes.
-#define BRIGHTNESS_ADDR  2     //brightness address
-#define CUR_EFFECT_ADDR  0     //index of current effect address
-#define EFFECT_LOCK_ADDR 1     //effect rotation bool address
-#define EEPROM_COM_TIME 3000   //EEPROM write time delay (ms)
+#define BRIGHTNESS_ADDR 2     //brightness address
+#define CUR_EFFECT_ADDR 0     //index of current effect address
+#define EFFECT_LOCK_ADDR 1    //effect rotation bool address
+#define EEPROM_COM_TIME 3000  //EEPROM write time delay (ms)
 
 //How many leds in your strip?
 #define NUM_LEDS 120
 
 //LED data and IR receiver pins
-#define DATA_PIN    D6
+#define DATA_PIN D6
 #define IR_RECV_PIN D5
 
 //Total number of effects
-//See bottom of code for spare effects (if any)
-#define NUM_EFFECTS 2
+//See "Spare Effects" file for unused effects
+#define NUM_EFFECTS 20
 
 //IR receiver setup
 IRrecv irrecv(IR_RECV_PIN);
@@ -71,42 +74,85 @@ CRGB leds[NUM_LEDS];
 //                          Segment Sets Setups
 //========================================================================
 //see segDefs file for segment set definitions
-//#include "segDefs.h"
-const PROGMEM segmentSecCont mainSec[] = {{0, NUM_LEDS}};
-SegmentPS mainSegment = {mainSec, SIZE(mainSec), true};
-SegmentPS *main_arr[] = {&mainSegment};
-SegmentSetPS mainSegments(leds, NUM_LEDS, main_arr, SIZE(main_arr));
+#include "segDefs.h"
 
 //========================================================================
 //                          Palette Classes Setups
 //========================================================================
-//Random palettes 
+//Random palettes
 //(initialized with red, green, and blue starting colors, they will be randomized during setup())
-CRGB palette0_arr[] = {colorUtilsPS::randColor(), colorUtilsPS::randColor(), colorUtilsPS::randColor()};
-palettePS palette0 = {palette0_arr, SIZE(palette0_arr)};
+CRGB rand1Pallet_Arr[] = {CRGB::Red};
+palettePS rand1Pallet1 = {rand1Pallet_Arr, SIZE(rand1Pallet_Arr)};
 
-CRGB palette1_arr[] = {colorUtilsPS::randColor(), colorUtilsPS::randColor(), colorUtilsPS::randColor()};
-palettePS palette1 = {palette1_arr, SIZE(palette1_arr)};
+CRGB rand2Pallet_Arr[] = {CRGB::Red, CRGB::Blue};
+palettePS rand2Pallet1 = {rand2Pallet_Arr, SIZE(rand2Pallet_Arr)};
 
+CRGB rand2Pallet_Arr2[] = {CRGB::Red, CRGB::Blue};
+palettePS rand2Pallet2 = {rand2Pallet_Arr2, SIZE(rand2Pallet_Arr2)};
+
+CRGB rand3Pallet_Arr[] = {CRGB::Red, CRGB::Blue, CRGB::Green};
+palettePS rand3Pallet1 = {rand3Pallet_Arr, SIZE(rand3Pallet_Arr)};
+
+CRGB rand3Pallet_Arr2[] = {CRGB::Red, CRGB::Blue, CRGB::Green};
+palettePS rand3Pallet2 = {rand3Pallet_Arr2, SIZE(rand3Pallet_Arr2)};
+
+CRGB rand4Pallet_Arr[] = {CRGB::Red, CRGB::Blue, CRGB::Green, CRGB::Purple};
+palettePS rand4Pallet1 = {rand4Pallet_Arr, SIZE(rand4Pallet_Arr)};
+
+CRGB rand4Pallet_Arr2[] = {CRGB::Red, CRGB::Blue, CRGB::Green, CRGB::Purple};
+palettePS rand4Pallet2 = {rand4Pallet_Arr2, SIZE(rand4Pallet_Arr2)};
+
+CRGB lavaPal_arr2[] = {CRGB::DarkRed, CRGB::Maroon, CRGB::Red, CRGB::DarkOrange};
+palettePS lavaPal = {lavaPal_arr2, SIZE(lavaPal_arr2)};
 //========================================================================
 //                          Util Classes Setups
 //========================================================================
 //The classes below either manipulate properties of effects or segments
 //For most cases you'll only need one in your code
 
-EffectBasePS *effArray[2] = {nullptr, nullptr};  //Create an effect array for our effects
-//Create the effect set using the effect array above, its length (2), and a run time (10000 ms)
-EffectSetPS effectSet(effArray, SIZE(effArray), 1, 10000);
+EffectBasePS *effArray[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};  //Create an effect array for our effects
+//Create the effect set using the effect array above, its length, and a run time (10000 ms)
+EffectSetPS effectSet(effArray, SIZE(effArray), 3, 10000);
 
-//palette blender
-PaletteBlenderPS myPB(palette0, palette1, true, 30, 100);
+//Palette blender with 2 colors, 5000ms pause between blends
+PaletteBlenderPS Rand2PB(rand2Pallet1, rand2Pallet2, true, true, false, 5000, 20, 50);
+palettePS &randPB2Pal = Rand2PB.blendPalette;
+
+//Palette blender with 3 colors, 5000ms pause between blends
+PaletteBlenderPS Rand3PB(rand3Pallet1, rand3Pallet2, true, true, false, 5000, 20, 50);
+palettePS &randPB3Pal = Rand3PB.blendPalette;
+
+//Palette blender with 4 colors, 5000ms pause between blends
+//PaletteBlenderPS Rand4PB(rand4Pallet1, rand4Pallet2, true, true, false, 5000, 20, 50);
+//palettePS &randPB4Pal = Rand4PB.blendPalette;
+
+PaletteNoisePS PalNoise3(3, 0, 70, false, 15, 60, 60);
+palettePS &noise3Pal = PalNoise3.noisePalette;
 
 //========================================================================
 //                          Effect Names
 //========================================================================
-TwinkleSL *myTwinkle;
 
-StreamerSL *myStreamer;
+//LavaPS *Lav;
+RainSL *rainSL;
+//RainSL *rainSL2;
+BreathEyeSL *BreathEye;
+ParticlesSL *Parti;
+ColorModeFillPS *ColorFill;
+//ColorModeFillPS *ColorFill2;
+ShiftingSeaSL *SeaShift;
+DissolveSL *Disolv;
+EdgeBurstSL *Edge;
+FirefliesSL *FireFlies;
+RollingWavesFastSL *RollFa;
+ScannerSL *Scan;
+PrideWPalSL2 *Pride2;
+PacificaHueSL *PaciH;
+StreamerSL *Strem;
+Twinkle2SLSeg *Twinkl2;
+NoiseSL *NoiseL;
+NoiseGradSL *NoiseG;
+//NoiseWavesSL *NoiseW;
 
 //=====================================================================================
 //                              General Vars
@@ -127,22 +173,11 @@ void setup() {
     //Serial.begin(115200);
 
     //Start the IR receiver
-    irrecv.enableIRIn(); 
+    irrecv.enableIRIn();
 
     //Setup the LED strip using FastLED
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
-    segDrawUtils::turnSegSetOff(mainSegments);  //clear the LEDs, just in case
-
-    //set a random seed for the esp
-    randomSeed(ESP.getCycleCount());
-    random16_add_entropy(ESP.getCycleCount());
-
-    //Set the PaletteBlender to randomize the palettes when it loops
-    //This gives us an every changing set of colors
-    myPB.randomize = true;
-
-    //add the palette blender to the effect set
-    effectSet.setEffect(&myPB, 0);
+    segDrawUtils::turnSegSetOff(lineCWsegments);          //clear the LEDs, just in case
 
     //EEPROM Memory Initialization
     EEPROM.begin(512);
@@ -161,8 +196,30 @@ void setup() {
     //Set the strip brightness
     FastLED.setBrightness(brightnessLevels[brightnessIndex]);
 
-    //Turn on the runOffset setting for all the segment sets
+    //set a random seed for the esp
+    randomSeed(ESP.getCycleCount());
+    random16_add_entropy(ESP.getCycleCount());
+
+    //assign the effect utility classes to the effect controller
+    effectSet.setEffect(&Rand2PB, 0);
+    effectSet.setEffect(&Rand3PB, 1);
+    //effectSet.setEffect(&Rand4PB, 2);
+    effectSet.setEffect(&PalNoise3, 2);
+
+    //Randomize the colors in the random color palettes
+    paletteUtilsPS::randomize(rand2Pallet1);
+    paletteUtilsPS::randomize(rand2Pallet2);
+
+    paletteUtilsPS::randomize(rand3Pallet1);
+    paletteUtilsPS::randomize(rand3Pallet2);
+
+    //paletteUtilsPS::randomize(rand4Pallet1);
+    //paletteUtilsPS::randomize(rand4Pallet2);
+
+    //Call the reset function ot turn on 
+    //the runOffset setting for all the segment sets
     //This allows the color mode rainbows to shift
+    resetLoopSettings();
 }
 
 //=====================================================================================
@@ -186,9 +243,9 @@ case <<case number>>: {
 } break;
 */
 
-//Each loop, we update the current effect, 
+//Each loop, we update the current effect,
 //and check if it's time to cycle to the next one (once its "runtime" has passed)
-//We also check the IR receiver for any button inputs. 
+//We also check the IR receiver for any button inputs.
 //Note that some button inputs may pause the effect cycling, see "handleIR()" for more.
 //Note that when effect cycling is off, the system will resume from the last played effect on re-boot.
 void loop() {
@@ -196,24 +253,220 @@ void loop() {
     //Use a switch statement to switch between what effect is being run
     switch(effectNum) {
         case 0:
-        default: {  //effect 0, myStreamer
+        default: {
             //If we are just starting the effect, we need to add it to the effect set, and set a run time
             if(!effectSetup) {
-                myStreamer = new StreamerSL(mainSegments, myPB.blendPalette, 0, 4, 3, 8, 60);
-                effectSet.setEffect(myStreamer, 1);  //add the effect to the effect set
-                effectSet.runTime = 5000;            //set the effect to run for 10 sec
+                ColorFill = new ColorModeFillPS(ringSegments, 3, 30);  //lines
+                ringSegments.offsetRateOrig = *ColorFill->rate;
+                effectSet.setEffect(ColorFill, 3);
+                effectSet.runTime = 10000;  //set the effect runtime (ms)
             } else {
                 //We could add more code here that would run while the Streamer is running
             }
         } break;
-        case 1: {  //effect 1, myTwinkle
+        case 1: {
             //If we are just starting the effect, we need to add it to the effect set, and set a run time
             if(!effectSetup) {
-                myTwinkle = new TwinkleSL(mainSegments, myPB.blendPalette, 0, 1, 6, 6, 70);
-                effectSet.setEffect(myTwinkle, 1);  //add the effect to the effect set
-                effectSet.runTime = 5000;           //set the effect to run for 10 sec
+                rainSL = new RainSL(ringSegments, randPB2Pal, 0, true, 8, 1, 1, 0, 2, 100, false);
+                effectSet.setEffect(rainSL, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
             } else {
-                //We could add more code here that would run while the Twinkle is running
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 2: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Parti = new ParticlesSL(lineCWsegments, randPB3Pal, 0, 10, 2, 50, 40, 1, 0, 1, 2, 6, 2, randPB3Pal.length, true);
+                Parti->colorMode = 4;
+                effectSet.setEffect(Parti, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 3: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                paletteUtilsPS::setColor(rand1Pallet1, CRGB::White, 0);
+                Parti = new ParticlesSL(lineCWsegments, rand1Pallet1, 0, 12, 2, 50, 30, 1, 0, 0, 2, 6, 2, 0, false);
+                Parti->bgColorMode = 2;
+                effectSet.setEffect(Parti, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 4: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                NoiseG = new NoiseGradSL(lineCWsegments, randPB3Pal, 0, 12, 0, 10, 10, 30, 5000, 80);
+                NoiseG->doBrightness = false;
+                effectSet.setEffect(NoiseG, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 5: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Edge = new EdgeBurstSL(ringSegments, 0, true, true, 20, 30);
+                effectSet.setEffect(Edge, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 6: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                BreathEye = new BreathEyeSL(ringSegments, 0, 0, 255, 13, true, true, 10, 50);
+                BreathEye->dimPow = 0;
+                effectSet.setEffect(BreathEye, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 7: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                FireFlies = new FirefliesSL(lineCWsegments, randPB3Pal, 40, 50, 2000, 3000, 3, 6, 30);
+                //FireFlies->colorMode = 1;  //6
+                FireFlies->flicker = false;
+                //FireFlies->rateOrig = 60;  //fix for weird rate slowdown bug
+                effectSet.setEffect(FireFlies, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 8: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Disolv = new DissolveSL(lineCWsegments, randPB3Pal, 3, 0, 80, 40);  //fully random colors
+                effectSet.setEffect(Disolv, 3);
+                effectSet.runTime = 10000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 9: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Twinkl2 = new Twinkle2SLSeg(ringUpperSegments, CRGB(222, 156, 42), 0, 12, 500, 5, 5, 5, 5, 2, 70);
+                PaciH = new PacificaHueSL(ringLowerSegments, 40);
+                effectSet.setEffect(PaciH, 3);
+                effectSet.setEffect(Twinkl2, 4);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 10: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                SeaShift = new ShiftingSeaSL(ringSegments, noise3Pal, 20, 0, 1, 1, 60);
+                SeaShift->randomShift = true;
+                effectSet.setEffect(SeaShift, 3); 
+                effectSet.runTime = 20000; //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 11: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Scan = new ScannerSL(ringSingleSet, randPB3Pal, 0, 1, 0, 5, 1, true, true, true, true, true, false, 100);
+                Scan->randMode = 2;
+                effectSet.setEffect(Scan, 3);
+                effectSet.runTime = 10000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 12: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                RollFa = new RollingWavesFastSL(ringSegments, 3, 0, 12, 1, 0, 80);
+                RollFa->randMode = 1;
+                effectSet.setEffect(RollFa, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 13: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Parti = new ParticlesSL(ringSegments, randPB3Pal, 0, 5, 2, 60, 30, 1, 0, 0, 2, 6, 2, randPB3Pal.length, true);
+                Parti->colorMode = 2;
+                effectSet.setEffect(Parti, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 14: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                NoiseL = new NoiseSL(ringSegments, randPB3Pal, 20, 30, 60, 15, 0, 60);
+                effectSet.setEffect(NoiseL, 3);
+                effectSet.runTime = 20000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 15: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                ColorFill = new ColorModeFillPS(ringSegments, 2, 40);  //rings
+                ringSegments.offsetRateOrig = *ColorFill->rate;
+                effectSet.setEffect(ColorFill, 3);
+                effectSet.runTime = 10000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 16: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Strem = new StreamerSL(lineCWsegments, randPB2Pal, 0, 1, 2, 20, 20);
+                effectSet.setEffect(Strem, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 17: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Twinkl2 = new Twinkle2SLSeg(lineCWsegments, randPB2Pal, 0, 30, 500, 3, 3, 4, 4, 2, 70);
+                effectSet.setEffect(Twinkl2, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 18: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Edge = new EdgeBurstSL(ringSingleSet, 3, true, true, 22, 20);
+                effectSet.setEffect(Edge, 3);
+                effectSet.runTime = 15000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
+            }
+        } break;
+        case 19: {
+            //If we are just starting the effect, we need to add it to the effect set, and set a run time
+            if(!effectSetup) {
+                Pride2 = new PrideWPalSL2(ringSegments, true, true, 80);
+                effectSet.setEffect(Pride2, 3);
+                effectSet.runTime = 60000;  //set the effect runtime (ms)
+            } else {
+                //We could add more code here that would run while the effect is running
             }
         } break;
     }
@@ -273,14 +526,14 @@ There are 7 button functions:
     5: Effects off Button. Turns the LEDs on/off and pauses/resumes the effect updating. This is basically a "soft" off switch. 
        When resumed, the effect's cycle runtime is reset, so it will run for a full run time. 
        When the effects are off, all other button inputs are ignored. 
-*/  
+*/
 void handleIR() {
-    
-    if(!effectsOff || IRsig.value == EFFECTS_OFF_BUT) { //when the effects are turned off we want to ignore any button inputs besides turing the effects on
+
+    if(!effectsOff || IRsig.value == EFFECTS_OFF_BUT) {  //when the effects are turned off we want to ignore any button inputs besides turing the effects on
 
         switch(IRsig.value) {
 
-            case BRI_INC_BUT: { //increase brightness, doesn't wrap, so it caps at max index
+            case BRI_INC_BUT: {  //increase brightness, doesn't wrap, so it caps at max index
                 if(brightnessIndex + 1 < numBrightnessLevels) {
                     brightnessIndex++;
                 }
@@ -290,7 +543,7 @@ void handleIR() {
                 EEPROM.write(BRIGHTNESS_ADDR, brightnessIndex);
             } break;
 
-            case BRI_DEC_BUT: { //decrease brightness, doesn't wrap, so it caps at 0
+            case BRI_DEC_BUT: {  //decrease brightness, doesn't wrap, so it caps at 0
                 if(brightnessIndex - 1 >= 0) {
                     brightnessIndex--;
                 }
@@ -300,7 +553,7 @@ void handleIR() {
                 EEPROM.write(BRIGHTNESS_ADDR, brightnessIndex);
             } break;
 
-            case NEXT_EFFECT_BUT: { //cycle to the next effect
+            case NEXT_EFFECT_BUT: {  //cycle to the next effect
                 switchEffect(true);
                 //If we aren't cycling effects, save the effect number so it can resume on restart
                 if(effectsLocked) {
@@ -309,7 +562,7 @@ void handleIR() {
                 }
             } break;
 
-            case PREV_EFFECT_BUT: { //cycle to the previous effect
+            case PREV_EFFECT_BUT: {  //cycle to the previous effect
                 switchEffect(false);
                 //If we aren't cycling effects, save the effect number so it can resume on restart
                 if(effectsLocked) {
@@ -318,16 +571,16 @@ void handleIR() {
                 }
             } break;
 
-            case EFFECT_LOCK_BUT: { //lock/unlock the effect cycle
+            case EFFECT_LOCK_BUT: {  //lock/unlock the effect cycle
                 effectsLocked = !effectsLocked;
-                effectSet.infinite = !effectSet.infinite; //set the effect set's infinite flag so the current effect runs forever
+                effectSet.infinite = !effectSet.infinite;  //set the effect set's infinite flag so the current effect runs forever
                 //save the locked state to EEPROM and the current effect,
                 //so it can be resumed after shutdown
                 EEPROM.write(EFFECT_LOCK_ADDR, effectsLocked);
                 EEPROM.write(CUR_EFFECT_ADDR, effectNum);
             } break;
 
-            case EFFECT_RESET_BUT: { //restart the current effect
+            case EFFECT_RESET_BUT: {  //restart the current effect
                 //the easiest way to reset the effect is to advance the effect cycle (also reseting and clearing the effect)
                 //and then set the effect number back to the current
                 uint16_t effectNumTemp = effectNum;
@@ -335,9 +588,9 @@ void handleIR() {
                 effectNum = effectNumTemp;
             } break;
 
-            case EFFECTS_OFF_BUT: { //toggles effect's on/off
+            case EFFECTS_OFF_BUT: {  //toggles effect's on/off
                 effectsOff = !effectsOff;
-                if(!effectsOff) { //when effects are turned back on, we restart the current effect's timer, to avoid any skipping/flashing
+                if(!effectsOff) {  //when effects are turned back on, we restart the current effect's timer, to avoid any skipping/flashing
                     effectSet.reset();
                 } else {
                     segDrawUtils::turnSegSetOff(mainSegments);
@@ -345,7 +598,7 @@ void handleIR() {
                 }
             } break;
 
-            default: { //reject any signals that don't match the listed buttons
+            default: {  //reject any signals that don't match the listed buttons
                 return;
             } break;
         }
@@ -381,5 +634,20 @@ void switchEffect(bool direct) {
 //for reseting any general settings changed for effect setup,
 //such as segment directions, color mode settings, etc.
 void resetLoopSettings() {
-    return;
+    ringSegments.offsetRateOrig = 30;
+    lineCWsegments.offsetRateOrig = 30;
+    ringUpperSegments.offsetRateOrig = 30;
+    ringLowerSegments.offsetRateOrig = 30;
+
+    ringSegments.runOffset = true;
+    //mainSegments.runOffset = true;
+    lineCWsegments.runOffset = true;
+    ringUpperSegments.runOffset = true;
+    ringLowerSegments.runOffset = true;
+
+    ringSegments.gradPalette = &randPB3Pal;
+    //mainSegments.gradPalette = &randPB3Pal;
+    lineCWsegments.gradPalette = &randPB3Pal;
+    ringUpperSegments.gradPalette = &randPB3Pal;
+    ringLowerSegments.gradPalette = &randPB3Pal;
 }
