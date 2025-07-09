@@ -4,7 +4,7 @@
 #include <EEPROM.h>
 #include <Ticker.h>
 
-//IMPORTANT: Code was originally compiled with FastLED Version 3.10.0 and ESP8266 core 3.1.2
+//IMPORTANT: Code was originally compiled with FastLED ver 3.10.0, ESP8266 core 3.1.2, and IRremoteESP866 ver 2.8.6
 //So use those versions if you run into any bugs
 
 #define FASTLED_INTERNAL 1  //turns off the pragma messages from FastLED
@@ -194,8 +194,7 @@ void setup() {
     }
 
     //Set the strip brightness
-    FastLED.setBrightness(brightnessLevels[brightnessIndex]);
-
+    FastLED.setBrightness(brightnessLevels[brightnessIndex % numBrightnessLevels]); //using mod to prevent any EEPROM weirdness on first boot
     //set a random seed for the esp
     randomSeed(ESP.getCycleCount());
     random16_add_entropy(ESP.getCycleCount());
@@ -511,19 +510,22 @@ void IRAM_ATTR commitEEPROM() {
 The function below handles the IR button inputs.
 Each input is bound to a specific IR signal. 
 You can re-bind the signal values using the IR button mappings block at the top of the code.
+Some buttons save their states in EEPROM for re-applying after booting.
 There are 7 button functions:
     1: Brightness increase/decrease buttons. These increment/decrement the brightness levels through the values 
-       in the brightness levels array. The  brightness index is stored in EEPROM so it can be re-applied on next boot.
+       in the brightness levels array. The brightness index is always saved so it can be re-applied on next boot.
 
-    2: Next/previous effect buttons. Cycle forwards or backwards through the effect list.
+    2: Next/previous effect buttons. Cycle forwards or backwards through the effect list. 
+       Only saves if the effect cycling is off (the sphere is locked to the current effect)
 
-    3: Effect cycle lock button. Locks or unlocks the effect cycling. When locked the current effect is played indefinitely.
-       When unlocked, the code cycles through effects as normal. The locked state is recorded in EEPROM along with the current effect,
-       so that it will resume upon re-boot. Likewise, when locked, the Next/previous effect buttons will also save the current effect.
+    3: Effect cycle lock button. Locks or unlocks the effect cycling. When locked, the current effect is played indefinitely. 
+       Both the locked/unlocked state and the current effect number are saved. 
+       When locked, the current effect will resume upon re-boot. 
+       Likewise, when locked, the next/previous effect buttons will also save the current effect.
     
     4: Effect reset button. Restarts the current effect (with new random inputs if applicable).
 
-    5: Effects off Button. Turns the LEDs on/off and pauses/resumes the effect updating. This is basically a "soft" off switch. 
+    5: Effects off Button. Turns the LEDs on/off and pauses/resumes the effect updating. This is basically a software off switch. 
        When resumed, the effect's cycle runtime is reset, so it will run for a full run time. 
        When the effects are off, all other button inputs are ignored. 
 */
